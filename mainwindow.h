@@ -44,6 +44,7 @@ public slots:
     void showOnlyChecked();
     void setResolution();
     void resetResolution();
+    void saveResolution();
 };
 
 #endif // MAINWINDOW_H

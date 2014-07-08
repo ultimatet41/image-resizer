@@ -26,6 +26,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->resolutionCb, SIGNAL(activated(int)), SLOT(setResolution()));
     connect(ui->wImgLe, SIGNAL(textEdited(QString)), SLOT(resetResolution()));
     connect(ui->hImgLe, SIGNAL(textEdited(QString)), SLOT(resetResolution()));
+    connect(ui->saveResolCb, SIGNAL(clicked()), SLOT(saveResolution()));
 
     QRegExp reg("(\\d+)");
     QValidator *validator = new QRegExpValidator(reg);
@@ -244,35 +245,52 @@ void MainWindow::showHideAllInfoImg()
 
 void MainWindow::resizeImgAndSave()
 {
-    if (ui->saveDirLe->text().isEmpty() || ui->wImgLe->text().isEmpty() || ui->hImgLe->text().isEmpty()){
-        QMessageBox::warning(this, trUtf8("Внимание"),
-                                        trUtf8("Вы не выбрали папку сохранения или не указали разрешение!"),
-                                        QMessageBox::Ok);
-        return;
+    if (!ui->saveResolCb->isChecked()){
+        if (ui->saveDirLe->text().isEmpty() || ui->wImgLe->text().isEmpty() || ui->hImgLe->text().isEmpty()){
+            QMessageBox::warning(this, trUtf8("Внимание"),
+                                 trUtf8("Вы не выбрали папку сохранения или не указали разрешение!"),
+                                 QMessageBox::Ok);
+            return;
+        }
     }
 
     ui->progressBar->reset();
     ui->progressBar->setVisible(true);
     int progressSize = 100 / ui->imgsLw->count();
 
+    int quality;
+    int aspectRatio ;
+    int w;
+    int h;
+
+    if (ui->fastScaleRb->isChecked()){
+        quality = 0;
+    }else {
+        quality = 1;
+    }
+    if (ui->ignorRb->isChecked()){
+        aspectRatio = Qt::IgnoreAspectRatio;
+    }else if(ui->saveRatioRb->isChecked()){
+        aspectRatio = Qt::KeepAspectRatio;
+
+    }
+
     for (int i = 0; i < ui->imgsLw->count(); i++){
         ImageWidget *img = (ImageWidget*)ui->imgsLw->itemWidget(ui->imgsLw->item(i));
         if (img->isCheckedImage()){
             QPixmap source(img->getLinkImg());
+            if (!ui->saveResolCb->isChecked()) {
+                w = ui->wImgLe->text().toInt();
+                h = ui->wImgLe->text().toInt();
+            }
+            else {
+                w = source.width();
+                h = source.height();
+            }
+
             QPixmap result;
-            int quality;
-            if (ui->fastScaleRb->isChecked()){
-                quality = 0;
-            }else {
-                quality = 1;
-            }
-            if (ui->ignorRb->isChecked()){
-                result = source.scaled(QSize(ui->wImgLe->text().toInt(), ui->hImgLe->text().toInt()),
-                                               Qt::IgnoreAspectRatio, (Qt::TransformationMode)quality);
-            }else if(ui->saveRatioRb->isChecked()){
-                result = source.scaled(QSize(ui->wImgLe->text().toInt(), ui->hImgLe->text().toInt()),
-                                               Qt::KeepAspectRatio, (Qt::TransformationMode)quality);
-            }
+            result = source.scaled(QSize(w, h),
+                                           (Qt::AspectRatioMode) aspectRatio, (Qt::TransformationMode)quality);
 
             result.save(saveDir +"/"+img->getFileNameImg());
             img->showOkIcon();                        
@@ -361,5 +379,19 @@ void MainWindow::setResolution()
 void MainWindow::resetResolution()
 {
     ui->resolutionCb->setCurrentIndex(0);
+}
+
+void MainWindow::saveResolution()
+{
+    if (ui->saveResolCb->isChecked()) {
+        ui->wImgLe->setEnabled(false);
+        ui->hImgLe->setEnabled(false);
+        ui->resolutionCb->setEnabled(false);
+    }
+    else {
+        ui->wImgLe->setEnabled(true);
+        ui->hImgLe->setEnabled(true);
+        ui->resolutionCb->setEnabled(true);
+    }
 }
 
